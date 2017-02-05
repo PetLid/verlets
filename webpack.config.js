@@ -1,7 +1,17 @@
 module.exports = {
-    entry: './src/index.js',
+    entry: './src/base/main.js',
     output: {
-        path: './dist',
-        filename: 'bundle.js'
+        path: __dirname + '/dist/js',
+        filename: 'game.bundle.js'
+    },
+    module: {
+        loaders: [{
+            exclude: /node_modules/,
+            loader: 'babel-loader',
+            query: {
+        //        optional: "runtime",
+                cacheDirectory: true
+            }
+        }]
     }
 }
