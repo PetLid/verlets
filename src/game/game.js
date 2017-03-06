@@ -1,6 +1,8 @@
 import Point from "../point.js";
 import Joint from "../joint.js";
 import Box from "../box.js";
+import World from "../world.js";
+import Rope from "../rope.js";
 
 export default function()
 {
@@ -9,10 +11,16 @@ export default function()
         joints = [],
         free = false,
         smoothMode = true,
-        boxes = [];
+        boxes = [],
+        rope
+        ;
 
     function init(_canvas)
     {
+        World.init();
+        World.test();
+        console.log("..well?");
+
         canvas = _canvas;
 
         points =
@@ -44,6 +52,8 @@ export default function()
         joints = [ new Joint(points[0], points[1]) ];
 
         boxes[0] = new Box({ pos: { x: 200, y: 300 } });
+
+        rope = new Rope({ x: 200, y: 100 });
     }
 
     function update(state)
@@ -64,10 +74,13 @@ export default function()
         {
             boxes[i].update(state);
         }
+
+        rope.update(state);
     }
 
     function render(ctx)
     {
+
         ctx.fillStyle = "#000";
 
         for (var i = 0; i < points.length; i += 1)
@@ -87,6 +100,19 @@ export default function()
 
         for (var i = 0; i < joints.length; i += 1)
         {
+            var a = joints[i].a,
+                b = joints[i].b;
+
+            var grd = ctx.createLinearGradient(a.pos.x, a.pos.y, b.pos.x, b.pos.y);
+
+            var colorA = a.pinned ? "red": "black";
+            var colorB = b.pinned ? "red": "black";
+
+            grd.addColorStop(0, colorA);
+            grd.addColorStop(1, colorB);
+
+            ctx.strokeStyle = grd;
+
             joints[i].render(ctx);
         }
 
@@ -119,15 +145,35 @@ export default function()
         {
             boxes[i].render(ctx);
         }
+
+        rope.render(ctx);
     }
 
     document.addEventListener("mousedown", function(e)
     {
         console.log("clickity at " + e.clientX + "x" + e.clientY);
 
-        //addJointPoint(e.clientX, e.clientY, e.button != 0);
 
-        addJointBox(e.clientX, e.clientY, e.button != 0);
+        addJointPoint(e.clientX, e.clientY, e.button != 0);
+        //addJointBox(e.clientX, e.clientY, e.button != 0);
+    });
+
+    document.addEventListener("mousemove", function(e)
+    {
+        rope.collidesWith({ x: e.clientX, y: e.clientY });
+        /*for (var i = 0; i < rope.points.length; i += 1)
+        {
+            var point = rope.points[i];
+
+            var vector = { x: point.pos.x - e.clientX, y: point.pos.y - e.clientY };
+
+            var dist = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
+
+            if (dist < 10)
+            {
+                point.physicsComponent.addForce(vector, 100 * 1000);
+            }
+        }*/
     });
 
     document.addEventListener("keydown", function(e)
@@ -148,6 +194,11 @@ export default function()
         if (e.keyCode == 82)
         {
             smoothMode = !smoothMode;
+        }
+
+        if (e.keyCode == 32)
+        {
+            World.gravity = -1 * World.gravity;
         }
     });
 
