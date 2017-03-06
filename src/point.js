@@ -1,3 +1,5 @@
+import PhysicsComponent from "./components/physics-component.js";
+
 class Point
 {
     constructor(options)
@@ -6,14 +8,14 @@ class Point
         this.oldPos = options.oldPos ? { x: options.oldPos.x, y: options.oldPos.y } : { x: this.pos.x, y: this.pos.y };
 
         this.pinned = options.pinned || false;
+
+        this.physicsComponent = new PhysicsComponent(this, { gravity: 1.81, drag: 10000 });
     }
 
     update(state)
     {
         var pos = this.pos,
             oldPos = this.oldPos;
-
-        var a = { x: 0, y: 9.82 * 100 };
 
         var dt = state.dt;
 
@@ -22,11 +24,17 @@ class Point
             var vx = pos.x - oldPos.x,
                 vy = pos.y - oldPos.y;
 
-            oldPos.x = pos.x;
-            oldPos.y = pos.y;
+            // Save unmodified position since physics component changes it
+            var uPos = { x: pos.x, y: pos.y };
 
-            pos.x += vx + a.x * dt * dt;
-            pos.y += vy + a.y * dt * dt;
+            // Modifies pos.x, must be done after calculating velocity
+            this.physicsComponent.update(state);
+
+            oldPos.x = uPos.x;
+            oldPos.y = uPos.y;
+
+            pos.x += vx; //+ a.x * dt * dt;
+            pos.y += vy; //+ a.y * dt * dt;
         }
 
         this.constrain(state.boundaries);
@@ -77,7 +85,12 @@ class Point
 
         var size = 5;
 
+        ctx.save();
+
+        ctx.fillStyle = this.pinned ? "red": "black";
         ctx.fillRect(pos.x - size / 2, pos.y - size / 2, 5, 5);
+
+        ctx.restore();
     }
 }
 
