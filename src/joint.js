@@ -8,7 +8,7 @@ class Joint {
         this.b = b;
 
         this.maxDistance = distance ||  Math.sqrt(Math.pow(a.pos.x - b.pos.x, 2) + Math.pow(a.pos.y - b.pos.y, 2));
-        this.keepDistance = keepDistance || true;
+        this.keepDistance = keepDistance == false ? false: true;
     }
 
     update(state)
@@ -60,8 +60,40 @@ class Joint {
                     b.pos.y += offsetY;
                 }
             }
-
        }
+    }
+
+    collidesWith(point)
+    {
+        var aPos = this.a.pos,
+            bPos = this.b.pos
+            ;
+
+        var vector = { x: aPos.x - bPos.x, y: aPos.y - bPos.y };
+
+        var slopeX = Math.abs(aPos.x - bPos.x) / Math.abs(aPos.y - bPos.y);
+        var slopeY = Math.abs(aPos.y - bPos.y) / Math.abs(aPos.x - bPos.x);
+
+        var x, y;
+
+
+        //
+        x = (point.y - aPos.y) * slopeX;
+        x += slopeX > 0 ? aPos.x : bPos.x;
+        x = x > bPos.x ? bPos.x : x < aPos.x ? aPos.x: x;
+
+        y = (point.x - aPos.x) * slopeY;
+        y += slopeY > 0 ? aPos.y : bPos.y;
+        y = y > bPos.y ? bPos.y : y < aPos.y ? aPos.y: y;
+
+
+        var margin = 10;
+
+        if(Math.abs(point.x - x) < margin && Math.abs(point.y - y) < margin) {
+           return true;
+        }
+
+        return false;
     }
 
     render(ctx)
