@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 15);
+/******/ 	return __webpack_require__(__webpack_require__.s = 18);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -85,7 +85,7 @@ var Joint = function () {
         this.b = b;
 
         this.maxDistance = distance || Math.sqrt(Math.pow(a.pos.x - b.pos.x, 2) + Math.pow(a.pos.y - b.pos.y, 2));
-        this.keepDistance = keepDistance || true;
+        this.keepDistance = keepDistance == false ? false : true;
     }
 
     _createClass(Joint, [{
@@ -132,6 +132,36 @@ var Joint = function () {
             }
         }
     }, {
+        key: "collidesWith",
+        value: function collidesWith(point) {
+            var aPos = this.a.pos,
+                bPos = this.b.pos;
+
+            var vector = { x: aPos.x - bPos.x, y: aPos.y - bPos.y };
+
+            var slopeX = Math.abs(aPos.x - bPos.x) / Math.abs(aPos.y - bPos.y);
+            var slopeY = Math.abs(aPos.y - bPos.y) / Math.abs(aPos.x - bPos.x);
+
+            var x, y;
+
+            //
+            x = (point.y - aPos.y) * slopeX;
+            x += slopeX > 0 ? aPos.x : bPos.x;
+            x = x > bPos.x ? bPos.x : x < aPos.x ? aPos.x : x;
+
+            y = (point.x - aPos.x) * slopeY;
+            y += slopeY > 0 ? aPos.y : bPos.y;
+            y = y > bPos.y ? bPos.y : y < aPos.y ? aPos.y : y;
+
+            var margin = 10;
+
+            if (Math.abs(point.x - x) < margin && Math.abs(point.y - y) < margin) {
+                return true;
+            }
+
+            return false;
+        }
+    }, {
         key: "render",
         value: function render(ctx) {
             var a = this.a,
@@ -165,6 +195,12 @@ module.exports = Joint;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _physicsComponent = __webpack_require__(14);
+
+var _physicsComponent2 = _interopRequireDefault(_physicsComponent);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Point = function () {
@@ -175,6 +211,8 @@ var Point = function () {
         this.oldPos = options.oldPos ? { x: options.oldPos.x, y: options.oldPos.y } : { x: this.pos.x, y: this.pos.y };
 
         this.pinned = options.pinned || false;
+
+        this.physicsComponent = new _physicsComponent2.default(this, { gravity: 1.81, drag: 10000 });
     }
 
     _createClass(Point, [{
@@ -183,19 +221,23 @@ var Point = function () {
             var pos = this.pos,
                 oldPos = this.oldPos;
 
-            var a = { x: 0, y: 9.82 * 100 };
-
             var dt = state.dt;
 
             if (!this.pinned) {
                 var vx = pos.x - oldPos.x,
                     vy = pos.y - oldPos.y;
 
-                oldPos.x = pos.x;
-                oldPos.y = pos.y;
+                // Save unmodified position since physics component changes it
+                var uPos = { x: pos.x, y: pos.y };
 
-                pos.x += vx + a.x * dt * dt;
-                pos.y += vy + a.y * dt * dt;
+                // Modifies pos.x, must be done after calculating velocity
+                this.physicsComponent.update(state);
+
+                oldPos.x = uPos.x;
+                oldPos.y = uPos.y;
+
+                pos.x += vx; //+ a.x * dt * dt;
+                pos.y += vy; //+ a.y * dt * dt;
             }
 
             this.constrain(state.boundaries);
@@ -237,7 +279,12 @@ var Point = function () {
 
             var size = 5;
 
+            ctx.save();
+
+            ctx.fillStyle = this.pinned ? "red" : "black";
             ctx.fillRect(pos.x - size / 2, pos.y - size / 2, 5, 5);
+
+            ctx.restore();
         }
     }]);
 
@@ -248,6 +295,50 @@ module.exports = Point;
 
 /***/ }),
 /* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var World = function () {
+    function World() {
+        _classCallCheck(this, World);
+    }
+
+    _createClass(World, null, [{
+        key: "init",
+        value: function init() {
+            this.gravity = 9.81 * 100;
+            this.drag = 1000;
+        }
+    }, {
+        key: "test",
+        value: function test() {
+            console.log("I AM ALIVE, gravity = " + this.gravity);
+        }
+    }, {
+        key: "setGravity",
+        value: function setGravity(a) {
+            this.gravity = a * 100;
+        }
+    }, {
+        key: "getGravity",
+        value: function getGravity() {
+            return this.gravity;
+        }
+    }]);
+
+    return World;
+}();
+
+module.exports = World;
+
+/***/ }),
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -351,23 +442,6 @@ var GLOBALS = __webpack_require__(7);
 __webpack_require__(5)(UTILS_FOLDER + "request-anim-frame.js");
 
 ;
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _game = __webpack_require__(14);
-
-var _game2 = _interopRequireDefault(_game);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-module.exports = {
-    Game: _game2.default
-};
 
 /***/ }),
 /* 4 */
@@ -895,6 +969,207 @@ module.exports = Box;
 "use strict";
 
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _world = __webpack_require__(2);
+
+var _world2 = _interopRequireDefault(_world);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var PhysicsComponent = function () {
+        function PhysicsComponent(obj, options) {
+                _classCallCheck(this, PhysicsComponent);
+
+                this.obj = obj;
+                options = options || {};
+                this.gravity = options.gravity || 0;
+                this.drag = options.drag || 5 * 100 * 10;
+                this.forces = { x: 0, y: 0 };
+        }
+
+        _createClass(PhysicsComponent, [{
+                key: "update",
+                value: function update(state) {
+                        this.drage();
+
+                        // Add gravity
+                        this.addForce({ x: 0, y: _world2.default.gravity });
+
+                        //console.log("grav: " + World.gravity);
+
+                        var obj = this.obj,
+                            dt = state.dt;
+
+                        var a = this.forces;
+
+                        obj.pos.x += a.x * dt * dt;
+                        obj.pos.y += a.y * dt * dt;
+
+                        // Reset forces
+                        this.forces.x = 0;
+                        this.forces.y = 0;
+                }
+        }, {
+                key: "drage",
+                value: function drage() {
+                        var obj = this.obj;
+                        var pos = obj.pos,
+                            oldPos = obj.oldPos;
+
+                        var vx = pos.x - oldPos.x,
+                            vy = pos.y - oldPos.y,
+                            drag = _world2.default.drag; //this.drag;
+
+                        //console.log("Stragne");
+
+                        //console.log(World.drag + " vx: " + vx);
+
+                        var dragForce = { x: -1 * drag * vx * vx * vx / Math.abs(vx + 0.001), y: -1 * drag * vy * vy * vy / Math.abs(vy + 0.001) };
+
+                        //console.log("Adding force " + dragForce.x + "x" + dragForce.y);
+                        this.addForce(dragForce);
+                }
+        }, {
+                key: "addForce",
+                value: function addForce(a, m) {
+                        m = m || 1;
+
+                        this.forces.x += m * a.x;
+                        this.forces.y += m * a.y;
+                }
+        }]);
+
+        return PhysicsComponent;
+}();
+
+module.exports = PhysicsComponent;
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _point = __webpack_require__(1);
+
+var _point2 = _interopRequireDefault(_point);
+
+var _joint = __webpack_require__(0);
+
+var _joint2 = _interopRequireDefault(_joint);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Rope = function () {
+        function Rope(pos, length, resolution) {
+                _classCallCheck(this, Rope);
+
+                //this.pos = { x: pos.x, y: pos.y };
+
+                length = length || 200;
+
+                resolution = resolution || 10;
+
+                //this.points = [ new Point({ pos: { this.pos.x, this.pos.y } } ];
+
+                this.points = [];
+                this.joints = [];
+
+                for (var i = 0; i < resolution; i += 1) {
+                        this.points[i] = new _point2.default({ pos: { x: pos.x + Math.random() * 5 - 2.5, y: pos.y + i * length / resolution } });
+                }
+
+                for (var i = 0; i < resolution - 1; i += 1) {
+                        this.joints[i] = new _joint2.default(this.points[i], this.points[i + 1], false, false);
+                }
+
+                // Pin base
+                this.points[0].pinned = true;
+        }
+
+        _createClass(Rope, [{
+                key: "update",
+                value: function update(state) {
+                        for (var i = 0; i < this.points.length; i += 1) {
+                                this.points[i].update(state);
+                        }
+
+                        for (var i = 0; i < this.joints.length; i += 1) {
+                                this.joints[i].update(state);
+                        }
+                }
+        }, {
+                key: "render",
+                value: function render(ctx) {
+                        ctx.save();
+
+                        ctx.beginPath();
+
+                        ctx.strokeStyle = "#f00";
+                        ctx.lineWidth = 5;
+
+                        var points = this.points;
+
+                        ctx.moveTo(points[0].pos.x, points[0].pos.y);
+
+                        for (var i = 1; i < points.length - 1; i += 1) {
+                                var xc = (points[i].pos.x + points[i + 1].pos.x) / 2;
+                                var yc = (points[i].pos.y + points[i + 1].pos.y) / 2;
+
+                                ctx.quadraticCurveTo(points[i].pos.x, points[i].pos.y, xc, yc);
+                        }
+
+                        ctx.lineTo(points[points.length - 1].pos.x, points[points.length - 1].pos.y);
+                        ctx.stroke();
+
+                        ctx.restore();
+                }
+        }, {
+                key: "collidesWith",
+                value: function collidesWith(point) {
+                        var edges = this.joints,
+                            index;
+
+                        var collides = false;
+
+                        // For each edge
+                        for (index = 0; index < edges.length && !collides; index += 1) {
+                                collides = edges[index].collidesWith(point);
+                        }
+
+                        if (collides) {
+                                index -= 1;
+
+                                var vector = { x: edges[index].b.pos.x - point.x, y: edges[index].b.pos.y - point.y };
+
+                                // !!! Change to nearest point
+                                edges[index].b.physicsComponent.addForce(vector, 100 * 100);
+
+                                console.log("Collision!!!");
+                        }
+                }
+        }]);
+
+        return Rope;
+}();
+
+module.exports = Rope;
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
@@ -905,9 +1180,14 @@ exports.default = function () {
         joints = [],
         free = false,
         smoothMode = true,
-        boxes = [];
+        boxes = [],
+        rope;
 
     function init(_canvas) {
+        _world2.default.init();
+        _world2.default.test();
+        console.log("..well?");
+
         canvas = _canvas;
 
         points = [new _point2.default({
@@ -930,6 +1210,8 @@ exports.default = function () {
         joints = [new _joint2.default(points[0], points[1])];
 
         boxes[0] = new _box2.default({ pos: { x: 200, y: 300 } });
+
+        rope = new _rope2.default({ x: 200, y: 100 });
     }
 
     function update(state) {
@@ -946,9 +1228,12 @@ exports.default = function () {
         for (var i = 0; i < boxes.length; i += 1) {
             boxes[i].update(state);
         }
+
+        rope.update(state);
     }
 
     function render(ctx) {
+
         ctx.fillStyle = "#000";
 
         for (var i = 0; i < points.length; i += 1) {
@@ -964,6 +1249,19 @@ exports.default = function () {
         }
 
         for (var i = 0; i < joints.length; i += 1) {
+            var a = joints[i].a,
+                b = joints[i].b;
+
+            var grd = ctx.createLinearGradient(a.pos.x, a.pos.y, b.pos.x, b.pos.y);
+
+            var colorA = a.pinned ? "red" : "black";
+            var colorB = b.pinned ? "red" : "black";
+
+            grd.addColorStop(0, colorA);
+            grd.addColorStop(1, colorB);
+
+            ctx.strokeStyle = grd;
+
             joints[i].render(ctx);
         }
 
@@ -992,14 +1290,29 @@ exports.default = function () {
         for (var i = 0; i < boxes.length; i += 1) {
             boxes[i].render(ctx);
         }
+
+        rope.render(ctx);
     }
 
     document.addEventListener("mousedown", function (e) {
         console.log("clickity at " + e.clientX + "x" + e.clientY);
 
-        //addJointPoint(e.clientX, e.clientY, e.button != 0);
+        addJointPoint(e.clientX, e.clientY, e.button != 0);
+        //addJointBox(e.clientX, e.clientY, e.button != 0);
+    });
 
-        addJointBox(e.clientX, e.clientY, e.button != 0);
+    document.addEventListener("mousemove", function (e) {
+        rope.collidesWith({ x: e.clientX, y: e.clientY });
+        /*for (var i = 0; i < rope.points.length; i += 1)
+        {
+            var point = rope.points[i];
+              var vector = { x: point.pos.x - e.clientX, y: point.pos.y - e.clientY };
+              var dist = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
+              if (dist < 10)
+            {
+                point.physicsComponent.addForce(vector, 100 * 1000);
+            }
+        }*/
     });
 
     document.addEventListener("keydown", function (e) {
@@ -1016,6 +1329,10 @@ exports.default = function () {
         // Change rendering mode
         if (e.keyCode == 82) {
             smoothMode = !smoothMode;
+        }
+
+        if (e.keyCode == 32) {
+            _world2.default.gravity = -1 * _world2.default.gravity;
         }
     });
 
@@ -1056,30 +1373,38 @@ var _box = __webpack_require__(13);
 
 var _box2 = _interopRequireDefault(_box);
 
+var _world = __webpack_require__(2);
+
+var _world2 = _interopRequireDefault(_world);
+
+var _rope = __webpack_require__(15);
+
+var _rope2 = _interopRequireDefault(_rope);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 ;
 
 /***/ }),
-/* 15 */
+/* 17 */,
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var _gameWrapper = __webpack_require__(2);
+var _gameWrapper = __webpack_require__(3);
 
 var _gameWrapper2 = _interopRequireDefault(_gameWrapper);
 
+var _game = __webpack_require__(16);
+
+var _game2 = _interopRequireDefault(_game);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var CONFIG = __webpack_require__(3); // Imports
-
-var Game = CONFIG.Game;
-
-console.log("Ey, " + CONFIG.gameURL);
-
 // Function for determining if document is ready
+// Imports
 function onReady(fn) {
     if (document.readyState != 'loading') {
         fn();
@@ -1090,7 +1415,7 @@ function onReady(fn) {
 
 function startGame() {
     var gameWrapper = (0, _gameWrapper2.default)();
-    var game = Game();
+    var game = (0, _game2.default)();
 
     gameWrapper.init('main-canvas', game);
     gameWrapper.gameLoop();
