@@ -1,8 +1,11 @@
 module.exports = {
-    entry: './es2015-game-base/src/base/main.js',
+    entry: {
+        basic: './src/index/main.js',
+        muscles: './src/muscles/main.js'
+    },
     output: {
         path: __dirname + '/dist/js',
-        filename: 'game.bundle.js'
+        filename: '[name].bundle.js'
     },
     module: {
         loaders: [{
