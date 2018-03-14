@@ -1,3 +1,4 @@
 Usage
 =====
-Clone or download repository and open the html-files in dist/ with a browser.
+1. Clone or download repository 
+2. Open one of index.html or muscles.html located in dist/ with a browser.
